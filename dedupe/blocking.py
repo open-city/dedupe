@@ -24,7 +24,7 @@ class Fingerprinter(object):
 
     def __init__(self, predicates: Iterable[dedupe.predicates.Predicate]) -> None:
 
-        self.predicates = predicates
+        self.predicates = sorted(predicates, key=lambda x: x.required_matches)
 
         self.index_fields: Dict[str,
                                 Dict[str,
@@ -93,10 +93,10 @@ class Fingerprinter(object):
         for i, record in enumerate(records):
             record_id, instance = record
 
-            for pred_id, predicate in predicates:
+            for pred_id, predicate in enumerate(self.predicates):
                 block_keys = predicate(instance, target=target)
                 for block_key in block_keys:
-                    yield block_key + pred_id, record_id
+                    yield (pred_id, block_key, predicate.required_matches), record_id
 
             if i and i % 10000 == 0:
                 logger.info('%(iteration)d, %(elapsed)f2 seconds',

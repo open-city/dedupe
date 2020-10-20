@@ -139,9 +139,13 @@ class DedupeBlockLearner(BlockLearner):
 
         for predicate in blocker.predicates:
             pred_cover = collections.defaultdict(set)
+            covered_records = collections.defaultdict(int)
+            start_block = predicate.required_matches - 1
 
             for id, record in records.items():
                 blocks = predicate(record)
+                if start_block:
+                    blocks = sorted(blocks)[start_block:]
                 for block in blocks:
                     pred_cover[block].add(id)
 
@@ -200,23 +204,28 @@ class RecordLinkBlockLearner(BlockLearner):
         pair_enumerator = core.Enumerator()
 
         for predicate in blocker.predicates:
-            cover[predicate] = collections.defaultdict(lambda: (set(), set()))
+            pred_cover = collections.defaultdict(lambda: (set(), set()))
+
             for id, record in records_2.items():
                 blocks = predicate(record, target=True)
                 for block in blocks:
-                    cover[predicate][block][1].add(id)
+                    pred_cover[block][1].add(id)
 
-            current_blocks = set(cover[predicate])
+            current_blocks = set(pred_cover)
             for id, record in records_1.items():
-                blocks = set(predicate(record))
-                for block in blocks & current_blocks:
-                    cover[predicate][block][0].add(id)
+                blocks = predicate(record)
+                for block in set(blocks) & current_blocks:
+                    pred_cover[block][0].add(id)
 
-        for predicate, blocks in cover.items():
-            pairs = {pair_enumerator[pair]
-                     for A, B in blocks.values()
-                     for pair in itertools.product(A, B)}
-            cover[predicate] = pairs
+            pairs = collections.defaultdict(int)
+            for A, B in pred_cover.values():
+                for pair in itertools.product(A, B):
+                    pairs[pair] += 1
+
+            pairs = {k: 1 for k, v in pairs.items()
+                     if v >= predicate.required_matches}
+
+            cover[predicate] = Counter(pairs)
 
         return cover
 

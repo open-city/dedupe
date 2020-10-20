@@ -1,4 +1,4 @@
-from .base import FieldType, indexPredicates
+from .base import FieldType
 from dedupe import predicates
 
 from affinegap import normalizedAffineGapDistance as affineGap
@@ -11,17 +11,10 @@ crfEd = CRFEditDistance()
 
 base_predicates = (predicates.wholeFieldPredicate,
                    predicates.firstTokenPredicate,
-                   predicates.commonIntegerPredicate,
-                   predicates.nearIntegersPredicate,
                    predicates.firstIntegerPredicate,
-                   predicates.hundredIntegerPredicate,
-                   predicates.hundredIntegersOddPredicate,
-                   predicates.alphaNumericPredicate,
                    predicates.sameThreeCharStartPredicate,
                    predicates.sameFiveCharStartPredicate,
                    predicates.sameSevenCharStartPredicate,
-                   predicates.commonTwoTokens,
-                   predicates.commonThreeTokens,
                    predicates.fingerprint,
                    predicates.oneGramFingerprint,
                    predicates.twoGramFingerprint,
@@ -36,26 +29,33 @@ class BaseStringType(FieldType):
     def __init__(self, definition):
         super(BaseStringType, self).__init__(definition)
 
-        self.predicates += indexPredicates((predicates.LevenshteinCanopyPredicate,
-                                            predicates.LevenshteinSearchPredicate),
-                                           (1, 2, 3, 4),
-                                           self.field)
+        self.predicates += self.indexPredicates((predicates.LevenshteinCanopyPredicate,
+                                                 predicates.LevenshteinSearchPredicate),
+                                                (1, 2, 3, 4),
+                                                self.field)
 
 
 class ShortStringType(BaseStringType):
     type = "ShortString"
 
     _predicate_functions = (base_predicates +
-                            (predicates.commonFourGram,
-                             predicates.commonSixGram,
-                             predicates.tokenFieldPredicate,
-                             predicates.suffixArray,
-                             predicates.doubleMetaphone,
-                             predicates.metaphoneToken))
+                            (predicates.doubleMetaphone,))
 
     _index_predicates = [predicates.TfidfNGramCanopyPredicate,
                          predicates.TfidfNGramSearchPredicate]
     _index_thresholds = (0.2, 0.4, 0.6, 0.8)
+
+    _overlap_predicates = (predicates.tokenFieldPredicate,
+                           predicates.commonFourGram,
+                           predicates.commonSixGram,
+                           predicates.hundredIntegerPredicate,
+                           predicates.hundredIntegersOddPredicate,
+                           predicates.nearIntegersPredicate,
+                           predicates.alphaNumericPredicate,
+                           predicates.commonIntegerPredicate,
+                           predicates.suffixArray,
+                           predicates.metaphoneToken)
+    _overlap_thresholds = (1, 2, 3, 4)
 
     def __init__(self, definition):
         super(ShortStringType, self).__init__(definition)
@@ -64,7 +64,6 @@ class ShortStringType(BaseStringType):
             self.comparator = crfEd
         else:
             self.comparator = affineGap
-
 
 class StringType(ShortStringType):
     type = "String"
