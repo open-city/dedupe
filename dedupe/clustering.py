@@ -194,6 +194,7 @@ def condensedDistance(dupes: numpy.ndarray) -> Tuple[Dict[int, RecordID],
 
 def cluster(dupes: numpy.ndarray,
             threshold: float = .5,
+            return_confidence_scores: bool = True,
             max_components: int = 30000) -> Clusters:
     '''
     Takes in a list of duplicate pairs and clusters them in to a
@@ -204,6 +205,8 @@ def cluster(dupes: numpy.ndarray,
     threshold -- number betweent 0 and 1 (default is .5). lowering the
                  number will increase precision, raising it will increase
                  recall
+    return_confidence_scores -- boolean to indicate whether confidence scores should be returned
+                Turning off confidence scores significantly speeds up clustering.
     '''
     distance_threshold = 1 - threshold
     dupe_sub_graphs = connected_components(dupes, max_components)
@@ -228,7 +231,10 @@ def cluster(dupes: numpy.ndarray,
 
             for cluster in clusters.values():
                 if len(cluster) > 1:
-                    scores = confidences(cluster, condensed_distances, N)
+                    if return_confidence_scores:
+                        scores = confidences(cluster, condensed_distances, N)
+                    else:
+                        scores = None
                     yield tuple(i_to_id[i] for i in cluster), scores
 
         else:
